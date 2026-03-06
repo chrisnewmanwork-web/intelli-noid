@@ -289,6 +289,49 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 
+// ── Device detection ──────────────────────────────────────────────
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+               || (navigator.maxTouchPoints > 1 && !window.MSPointerEvent);
+
+// ── Web Audio sound engine ────────────────────────────────────────
+let _ac = null;
+function getAC() {
+  if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (_ac.state === 'suspended') _ac.resume();
+  return _ac;
+}
+function tone(freq, type, dur, vol = 0.25, delay = 0) {
+  try {
+    const ac = getAC();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ac.currentTime + delay);
+    gain.gain.setValueAtTime(vol, ac.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + delay + dur);
+    osc.start(ac.currentTime + delay);
+    osc.stop(ac.currentTime + delay + dur + 0.05);
+  } catch(e) {}
+}
+const sfx = {
+  wall:    () => tone(260, 'square',   0.06, 0.18),
+  paddle:  () => { tone(520, 'sine',   0.07, 0.22); tone(780, 'sine', 0.04, 0.10, 0.03); },
+  brick:   (pts) => { const f = 180 + pts * 3; tone(f, 'square', 0.06, 0.28); tone(f*1.5, 'sine', 0.04, 0.12, 0.03); },
+  life:    () => { [320, 220, 140].forEach((f,i) => tone(f, 'sawtooth', 0.22, 0.30, i*0.18)); },
+  power:   () => { [440, 554, 659, 880].forEach((f,i) => tone(f, 'sine', 0.13, 0.22, i*0.07)); },
+  level:   () => { [523, 659, 784, 1047].forEach((f,i) => tone(f, 'sine', 0.18, 0.28, i*0.09)); },
+  win:     () => { [523, 659, 784, 1047, 1319].forEach((f,i) => tone(f, 'sine', 0.22, 0.30, i*0.10)); },
+  gameover:() => { [350, 260, 180, 120].forEach((f,i) => tone(f, 'sawtooth', 0.30, 0.28, i*0.17)); },
+  laser:   () => tone(800, 'sawtooth', 0.05, 0.10),
+};
+
+// ── Keyboard state (desktop arrow-key control) ────────────────────
+const keys = {};
+document.addEventListener('keydown', e => { keys[e.code] = true; });
+document.addEventListener('keyup',   e => { keys[e.code] = false; });
+const ARROW_SPEED = 520; // pixels per second
+
 // Game state
 let state = 'idle'; // idle, playing, paused, dead, win, gameover
 let score = 0, hiScore = 0, lives = 3, level = 1;
@@ -483,6 +526,10 @@ document.addEventListener('keydown', e => {
     else if (state === 'playing') state = 'paused';
     else if (state === 'paused') state = 'playing';
   }
+  // Prevent page scroll when arrow keys used in-game
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code) && state === 'playing') {
+    e.preventDefault();
+  }
 });
 
 document.getElementById('startBtn').addEventListener('click', startGame);
@@ -515,9 +562,11 @@ function nextLevel() {
   level++;
   if (level > 7) {
     state = 'win';
+    sfx.win();
     showOverlay('YOU WIN', `FINAL SCORE: ${score}`, score, 'PLAY AGAIN');
     return;
   }
+  sfx.level();
   state = 'playing';
   initLevel();
   updateScore();
@@ -540,6 +589,15 @@ function loop(ts = 0) {
 
 function update(dt) {
   // Paddle movement
+  // Desktop: arrow keys nudge the target; mouse/touch also work simultaneously
+  if (!isMobile) {
+    const arrowDelta = ARROW_SPEED * (dt / 60);
+    if (keys['ArrowLeft'])  paddle.target -= arrowDelta;
+    if (keys['ArrowRight']) paddle.target += arrowDelta;
+    // Clamp target so keyboard can't send it off-screen
+    const pw0 = activePower === 'wide' ? 120 : 80;
+    paddle.target = Math.max(pw0/2, Math.min(W - pw0/2, paddle.target));
+  }
   paddle.x += (paddle.target - paddle.x) * 0.18;
   let pw = activePower === 'wide' ? 120 : 80;
   paddle.x = Math.max(pw/2, Math.min(W - pw/2, paddle.x));
@@ -550,6 +608,7 @@ function update(dt) {
     laserShots.push({ x: paddle.x - 30, y: paddle.y - 10, vy: -12 });
     laserShots.push({ x: paddle.x + 30, y: paddle.y - 10, vy: -12 });
     laserCooldown = 15;
+    sfx.laser();
   }
 
   // Power timer
@@ -586,9 +645,9 @@ function update(dt) {
     b.trail.forEach(t => t.life -= 0.08);
 
     // Walls
-    if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx); }
-    if (b.x + b.r > W) { b.x = W - b.r; b.vx = -Math.abs(b.vx); }
-    if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy); }
+    if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx); sfx.wall(); }
+    if (b.x + b.r > W) { b.x = W - b.r; b.vx = -Math.abs(b.vx); sfx.wall(); }
+    if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy); sfx.wall(); }
 
     // Paddle collision
     const pw2 = (activePower === 'wide' ? 120 : 80) / 2;
@@ -605,6 +664,7 @@ function update(dt) {
       b.vy = -Math.abs(Math.cos(angle) * spd);
       b.y = paddle.y - b.r - 4;
       spawnParticles(b.x, paddle.y, '#00f5ff', 6);
+      sfx.paddle();
     }
 
     // Brick collision
@@ -644,11 +704,13 @@ function update(dt) {
         extraBalls = [];
         lives--;
         updateLives();
+        sfx.life();
         screenShake(6, 20);
         if (lives <= 0) {
           state = 'gameover';
           if (score > hiScore) hiScore = score;
           updateScore();
+          sfx.gameover();
           showOverlay('GAME OVER', `FINAL SCORE: ${score}`, score, 'RETRY', true);
         } else {
           resetBall();
@@ -670,6 +732,7 @@ function update(dt) {
       activePower = pu.type;
       powerTimer = 600;
       spawnParticles(pu.x, pu.y, POWER_COLORS[pu.type], 20);
+      sfx.power();
       if (pu.type === 'multi') {
         // Spawn extra balls
         for (let i = 0; i < 2; i++) {
@@ -711,6 +774,7 @@ function update(dt) {
 function hitBrick(brick, bx, by) {
   brick.hp--;
   brick.flashTime = 8;
+  sfx.brick(brick.pts);
   if (brick.hp <= 0) {
     brick.alive = false;
     score += brick.pts;
@@ -925,6 +989,9 @@ function render() {
     ctx.fillStyle = 'rgba(0,245,255,0.5)';
     ctx.shadowBlur = 0;
     ctx.fillText('PRESS SPACE TO RESUME', W/2, H/2 + 30);
+    if (!isMobile) {
+      ctx.fillText('← → ARROW KEYS OR MOUSE TO MOVE', W/2, H/2 + 50);
+    }
     ctx.restore();
   }
 
@@ -940,8 +1007,11 @@ function autoPause() {
 document.body.addEventListener('touchend', autoPause);
 document.body.addEventListener('touchcancel', autoPause);
 
-// Show initial overlay
-showOverlay('NEON BREACH', 'MOVE MOUSE TO CONTROL PADDLE', 0, 'INITIATE');
+// Show initial overlay with device-appropriate hint
+const controlHint = isMobile
+  ? 'TOUCH & DRAG TO CONTROL PADDLE'
+  : 'MOUSE OR ← → ARROW KEYS TO MOVE PADDLE';
+showOverlay('NEON BREACH', controlHint, 0, 'INITIATE');
 </script>
 </body>
 </html>

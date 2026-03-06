@@ -70,6 +70,8 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
+    width: 100%;
+    max-width: 500px;
   }
 
   .title {
@@ -95,8 +97,9 @@
 
   .hud {
     display: flex;
-    gap: 40px;
-    width: 480px;
+    gap: 20px;
+    width: 100%;
+    max-width: 480px;
     justify-content: space-between;
   }
 
@@ -153,6 +156,9 @@
       inset 0 0 40px rgba(0,0,0,0.5);
     display: block;
     cursor: none;
+    width: 100%;
+    max-width: 480px;
+    height: auto;
   }
 
   .message-overlay {
@@ -433,13 +439,33 @@ function updateLives() {
   }
 }
 
-// Mouse control
+// Mouse and touch control
+function getPointerX(e) {
+  if (e.touches && e.touches.length) {
+    const rect = canvas.getBoundingClientRect();
+    return e.touches[0].clientX - rect.left;
+  } else {
+    const rect = canvas.getBoundingClientRect();
+    return e.clientX - rect.left;
+  }
+}
+
 canvas.addEventListener('mousemove', e => {
-  const rect = canvas.getBoundingClientRect();
-  paddle.target = e.clientX - rect.left;
+  paddle.target = getPointerX(e);
 });
 
+canvas.addEventListener('touchmove', e => {
+  paddle.target = getPointerX(e);
+  e.preventDefault();
+}, {passive:false});
+
 canvas.addEventListener('click', e => {
+  if (state === 'idle' || state === 'ready') {
+    startGame();
+  }
+});
+
+canvas.addEventListener('touchstart', e => {
   if (state === 'idle' || state === 'ready') {
     startGame();
   }

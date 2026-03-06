@@ -929,6 +929,15 @@ function render() {
   ctx.restore();
 }
 
+// Auto-pause when finger is lifted
+function autoPause() {
+  if (state === 'playing') {
+    state = 'paused';
+  }
+}
+document.body.addEventListener('touchend', autoPause);
+document.body.addEventListener('touchcancel', autoPause);
+
 // Show initial overlay
 showOverlay('NEON BREACH', 'MOVE MOUSE TO CONTROL PADDLE', 0, 'INITIATE');
 </script>

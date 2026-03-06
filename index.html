@@ -326,6 +326,291 @@ const sfx = {
   laser:   () => tone(800, 'sawtooth', 0.05, 0.10),
 };
 
+// ── 8-bit Chiptune Soundtrack ─────────────────────────────────────
+const MUSIC = (() => {
+  const BPM  = 146;              // 162 × 0.9 ≈ 146
+  const S    = 60 / BPM / 4;    // one 16th-note in seconds
+
+  // C-major note table
+  const N = {
+    _:null,
+    C3:130.81, D3:146.83, E3:164.81, F3:174.61, G3:196.00, A3:220.00, B3:246.94,
+    C4:261.63, D4:293.66, E4:329.63, F4:349.23, G4:392.00, A4:440.00, B4:493.88,
+    C5:523.25, D5:587.33, E5:659.25, F5:698.46, G5:784.00, A5:880.00, B5:987.77,
+    C6:1046.5,
+  };
+
+  // ── Chord progression: 8-bar form ────────────────────────────────
+  // Section A (bars 1–4): C – F – Am – G  (bright, energetic hook)
+  // Section B (bars 5–8): Em – Am – Dm – G (darker bridge, more tension)
+  // 128 steps = 8 bars × 16 steps each
+  const STEPS = 128;
+
+  // Melody — square wave lead, high register
+  const melody = [
+    // ── SECTION A ────────────────────────────────────────────────
+    // Bar 1: C major
+    N.E5,  N._,   N.G5,  N._,   N.E5,  N._,   N.C5,  N._,
+    N.D5,  N._,   N._,   N._,   N.E5,  N._,   N._,   N._,
+    // Bar 2: F major
+    N.F5,  N._,   N.A5,  N._,   N.F5,  N._,   N.C5,  N._,
+    N.A4,  N._,   N.C5,  N._,   N.F5,  N._,   N._,   N._,
+    // Bar 3: A minor
+    N.A5,  N._,   N.C6,  N._,   N.A5,  N._,   N.E5,  N._,
+    N.C5,  N._,   N._,   N._,   N.E5,  N._,   N.D5,  N._,
+    // Bar 4: G major
+    N.G5,  N._,   N.B5,  N._,   N.G5,  N._,   N.D5,  N._,
+    N.B4,  N._,   N.D5,  N._,   N.E5,  N._,   N.G5,  N._,
+
+    // ── SECTION B ────────────────────────────────────────────────
+    // Bar 5: E minor — stepwise ascending idea
+    N.E5,  N._,   N.G5,  N._,   N.B5,  N._,   N.G5,  N._,
+    N.E5,  N._,   N.B4,  N._,   N.G4,  N._,   N.B4,  N._,
+    // Bar 6: A minor — flowing descending run
+    N.A5,  N._,   N.G5,  N._,   N.E5,  N._,   N.C5,  N._,
+    N.A4,  N._,   N.C5,  N._,   N.E5,  N._,   N.A5,  N._,
+    // Bar 7: D minor — punchy syncopated motif
+    N.D5,  N._,   N.F5,  N._,   N.A5,  N._,   N.F5,  N._,
+    N.D5,  N._,   N._,   N._,   N.A4,  N._,   N.D5,  N._,
+    // Bar 8: G major — big turnaround sweep back to top
+    N.G5,  N._,   N.D5,  N._,   N.B4,  N._,   N.G4,  N._,
+    N.B4,  N._,   N.D5,  N._,   N.G5,  N._,   N.B5,  N._,
+  ];
+
+  // Arpeggio — fast 16th-note square wave inner chords
+  const arp = [
+    // ── SECTION A ────────────────────────────────────────────────
+    // Bar 1: C (C-E-G-E)
+    N.C4,  N.E4,  N.G4,  N.E4,  N.C4,  N.E4,  N.G4,  N.E4,
+    N.C4,  N.E4,  N.G4,  N.E4,  N.C4,  N.G4,  N.E4,  N.C4,
+    // Bar 2: F (F-A-C-A)
+    N.F4,  N.A4,  N.C5,  N.A4,  N.F4,  N.A4,  N.C5,  N.A4,
+    N.F4,  N.A4,  N.C5,  N.A4,  N.F4,  N.C5,  N.A4,  N.F4,
+    // Bar 3: Am (A-C-E-C)
+    N.A3,  N.C4,  N.E4,  N.C4,  N.A3,  N.C4,  N.E4,  N.C4,
+    N.A3,  N.E4,  N.C4,  N.E4,  N.A3,  N.C4,  N.E4,  N.A3,
+    // Bar 4: G (G-B-D-B)
+    N.G3,  N.B3,  N.D4,  N.B3,  N.G3,  N.B3,  N.D4,  N.B3,
+    N.G3,  N.D4,  N.B3,  N.D4,  N.G3,  N.B3,  N.D4,  N.G3,
+
+    // ── SECTION B ────────────────────────────────────────────────
+    // Bar 5: Em (E-G-B-G)
+    N.E4,  N.G4,  N.B4,  N.G4,  N.E4,  N.G4,  N.B4,  N.G4,
+    N.E4,  N.G4,  N.B4,  N.G4,  N.E4,  N.B4,  N.G4,  N.E4,
+    // Bar 6: Am — different inversion (C-E-A-E)
+    N.C4,  N.E4,  N.A4,  N.E4,  N.C4,  N.E4,  N.A4,  N.E4,
+    N.C4,  N.A4,  N.E4,  N.A4,  N.C4,  N.E4,  N.A4,  N.C4,
+    // Bar 7: Dm (D-F-A-F)
+    N.D4,  N.F4,  N.A4,  N.F4,  N.D4,  N.F4,  N.A4,  N.F4,
+    N.D4,  N.A4,  N.F4,  N.A4,  N.D4,  N.F4,  N.A4,  N.D4,
+    // Bar 8: G7 (G-B-D-F) — added 7th for extra tension before loop
+    N.G3,  N.B3,  N.D4,  N.F4,  N.G3,  N.B3,  N.D4,  N.F4,
+    N.G3,  N.D4,  N.B3,  N.D4,  N.G3,  N.B3,  N.D4,  N.G3,
+  ];
+
+  // Bass — triangle wave, low register, root + fifth movement
+  const bass = [
+    // ── SECTION A ────────────────────────────────────────────────
+    // Bar 1: C
+    N.C3,  N._,   N._,   N._,   N.G3,  N._,   N._,   N._,
+    N.C3,  N._,   N._,   N._,   N.E3,  N._,   N._,   N._,
+    // Bar 2: F
+    N.F3,  N._,   N._,   N._,   N.C4,  N._,   N._,   N._,
+    N.F3,  N._,   N._,   N._,   N.A3,  N._,   N._,   N._,
+    // Bar 3: Am
+    N.A3,  N._,   N._,   N._,   N.E3,  N._,   N._,   N._,
+    N.A3,  N._,   N._,   N._,   N.C4,  N._,   N._,   N._,
+    // Bar 4: G
+    N.G3,  N._,   N._,   N._,   N.D4,  N._,   N._,   N._,
+    N.G3,  N._,   N._,   N._,   N.B3,  N._,   N._,   N._,
+
+    // ── SECTION B ────────────────────────────────────────────────
+    // Bar 5: Em — half-time, spacious feel
+    N.E3,  N._,   N._,   N._,   N.B3,  N._,   N._,   N._,
+    N.E3,  N._,   N._,   N._,   N.G3,  N._,   N._,   N._,
+    // Bar 6: Am
+    N.A3,  N._,   N._,   N._,   N.E3,  N._,   N._,   N._,
+    N.A3,  N._,   N._,   N._,   N.C4,  N._,   N._,   N._,
+    // Bar 7: Dm
+    N.D3,  N._,   N._,   N._,   N.A3,  N._,   N._,   N._,
+    N.D3,  N._,   N._,   N._,   N.F3,  N._,   N._,   N._,
+    // Bar 8: G (with F in bass for G7 colour)
+    N.G3,  N._,   N._,   N._,   N.D4,  N._,   N._,   N._,
+    N.G3,  N._,   N._,   N._,   N.F3,  N._,   N._,   N._,
+  ];
+
+  // Drums — K=kick  S=snare  H=hi-hat  O=open-hat  _=rest
+  const drums = [
+    // ── SECTION A ────────────────────────────────────────────────
+    // Bar 1: standard groove
+    'K','_','H','_', 'S','_','H','_', 'K','_','H','_', 'S','_','H','_',
+    // Bar 2: kick double on beat 3
+    'K','_','H','_', 'S','_','H','_', 'K','K','H','_', 'S','_','H','_',
+    // Bar 3: open hat flourish
+    'K','_','H','_', 'S','_','H','_', 'K','_','H','_', 'S','_','O','_',
+    // Bar 4: build-up fill
+    'K','_','H','_', 'S','_','H','_', 'K','_','H','H', 'S','H','H','H',
+
+    // ── SECTION B ────────────────────────────────────────────────
+    // Bar 5: Em — half-time spacious groove
+    'K','_','_','_', 'S','_','H','_', 'K','_','H','_', 'S','_','H','_',
+    // Bar 6: Am — syncopated kick
+    'K','_','H','_', 'S','_','H','K', '_','_','H','_', 'S','_','H','_',
+    // Bar 7: Dm — driving 8th hi-hats for energy
+    'K','H','H','_', 'S','H','H','_', 'K','H','H','_', 'S','H','H','_',
+    // Bar 8: G — climax crash fill back to top
+    'K','_','H','_', 'S','_','H','_', 'K','H','H','H', 'S','H','O','H',
+  ];
+
+  // ── Master music gain (instant mute without stopping scheduler) ───
+  let _masterGain = null;
+  function getMG() {
+    if (!_masterGain) {
+      const ac = getAC();
+      _masterGain = ac.createGain();
+      _masterGain.gain.value = 1;
+      _masterGain.connect(ac.destination);
+    }
+    return _masterGain;
+  }
+
+  // ── Note schedulers ───────────────────────────────────────────────
+  function scheduleOsc(freq, type, dur, vol, time) {
+    try {
+      const ac = getAC(); const mg = getMG();
+      const osc = ac.createOscillator();
+      const g   = ac.createGain();
+      osc.connect(g); g.connect(mg);
+      osc.type = type;
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(vol, time);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+      osc.start(time); osc.stop(time + dur + 0.02);
+    } catch(e) {}
+  }
+
+  function scheduleKick(time) {
+    try {
+      const ac = getAC(); const mg = getMG();
+      const osc = ac.createOscillator();
+      const g   = ac.createGain();
+      osc.connect(g); g.connect(mg);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(160, time);
+      osc.frequency.exponentialRampToValueAtTime(38, time + 0.09);
+      g.gain.setValueAtTime(0.55, time);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + 0.14);
+      osc.start(time); osc.stop(time + 0.16);
+    } catch(e) {}
+  }
+
+  function scheduleSnare(time) {
+    try {
+      const ac = getAC(); const mg = getMG();
+      const sr = ac.sampleRate, dur = 0.11;
+      const buf  = ac.createBuffer(1, sr * dur, sr);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      const src = ac.createBufferSource(); src.buffer = buf;
+      const filt = ac.createBiquadFilter();
+      filt.type = 'bandpass'; filt.frequency.value = 2200; filt.Q.value = 0.7;
+      const g = ac.createGain();
+      src.connect(filt); filt.connect(g); g.connect(mg);
+      g.gain.setValueAtTime(0.28, time);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+      src.start(time); src.stop(time + dur + 0.01);
+      // tiny square body
+      scheduleOsc(185, 'square', 0.05, 0.08, time);
+    } catch(e) {}
+  }
+
+  function scheduleHihat(time) {
+    try {
+      const ac = getAC(); const mg = getMG();
+      const dur = 0.035;
+      const buf  = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      const src = ac.createBufferSource(); src.buffer = buf;
+      const filt = ac.createBiquadFilter();
+      filt.type = 'highpass'; filt.frequency.value = 9000;
+      const g = ac.createGain();
+      src.connect(filt); filt.connect(g); g.connect(mg);
+      g.gain.setValueAtTime(0.07, time);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+      src.start(time); src.stop(time + dur + 0.005);
+    } catch(e) {}
+  }
+
+  function scheduleOpenHat(time) {
+    try {
+      const ac = getAC(); const mg = getMG();
+      const dur = 0.18;
+      const buf  = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      const src = ac.createBufferSource(); src.buffer = buf;
+      const filt = ac.createBiquadFilter();
+      filt.type = 'highpass'; filt.frequency.value = 8000;
+      const g = ac.createGain();
+      src.connect(filt); filt.connect(g); g.connect(mg);
+      g.gain.setValueAtTime(0.10, time);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+      src.start(time); src.stop(time + dur + 0.01);
+    } catch(e) {}
+  }
+
+  function scheduleStep(step, t) {
+    const mf = melody[step]; if (mf) scheduleOsc(mf, 'square',   S * 0.72, 0.13, t);
+    const af = arp[step];    if (af) scheduleOsc(af, 'square',   S * 0.48, 0.055, t);
+    const bf = bass[step];   if (bf) scheduleOsc(bf, 'triangle', S * 1.85, 0.20, t);
+    const d  = drums[step];
+    if      (d === 'K') scheduleKick(t);
+    else if (d === 'S') scheduleSnare(t);
+    else if (d === 'H') scheduleHihat(t);
+    else if (d === 'O') scheduleOpenHat(t);
+  }
+
+  // ── Scheduler loop ────────────────────────────────────────────────
+  let _active = false, _stepIdx = 0, _nextTime = 0, _timer = null;
+  let _musicOn = true;
+
+  function tick() {
+    if (!_active) return;
+    const ac = getAC();
+    while (_nextTime < ac.currentTime + 0.12) {
+      scheduleStep(_stepIdx, _nextTime);
+      _nextTime += S;
+      _stepIdx = (_stepIdx + 1) % STEPS;
+    }
+    _timer = setTimeout(tick, 25);
+  }
+
+  return {
+    start() {
+      if (_active) return;
+      _active = true; _stepIdx = 0;
+      _nextTime = getAC().currentTime + 0.08;
+      getMG(); // ensure gain node exists
+      tick();
+    },
+    stop()   { _active = false; clearTimeout(_timer); _stepIdx = 0; },
+    pause()  { _active = false; clearTimeout(_timer); },
+    resume() {
+      if (_active) return;
+      _active = true;
+      _nextTime = getAC().currentTime + 0.08;
+      tick();
+    },
+    toggle() {
+      _musicOn = !_musicOn;
+      getMG().gain.setTargetAtTime(_musicOn ? 1 : 0, getAC().currentTime, 0.04);
+      return _musicOn;
+    },
+    isOn() { return _musicOn; },
+  };
+})();
+
 // ── Keyboard state (desktop arrow-key control) ────────────────────
 const keys = {};
 document.addEventListener('keydown', e => { keys[e.code] = true; });
@@ -507,6 +792,19 @@ document.body.addEventListener('touchmove', e => {
 }, {passive:false});
 
 canvas.addEventListener('click', e => {
+  if (state === 'paused') {
+    // Check if music button was clicked
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const scaleY = H / rect.height;
+    const cx = (e.clientX - rect.left) * scaleX;
+    const cy = (e.clientY - rect.top)  * scaleY;
+    const btnX = W/2 - 70, btnY = H/2 + 52, btnW = 140, btnH = 32;
+    if (cx >= btnX && cx <= btnX + btnW && cy >= btnY && cy <= btnY + btnH) {
+      MUSIC.toggle();
+      return;
+    }
+  }
   if (state === 'idle' || state === 'ready') {
     startGame();
   }
@@ -514,7 +812,7 @@ canvas.addEventListener('click', e => {
 
 document.body.addEventListener('touchstart', e => {
   if (state === 'paused') {
-    state = 'playing';
+    state = 'playing'; MUSIC.resume();
   } else if (state === 'idle' || state === 'ready') {
     startGame();
   }
@@ -523,9 +821,10 @@ document.body.addEventListener('touchstart', e => {
 document.addEventListener('keydown', e => {
   if (e.code === 'Space') {
     if (state === 'idle') startGame();
-    else if (state === 'playing') state = 'paused';
-    else if (state === 'paused') state = 'playing';
+    else if (state === 'playing') { state = 'paused'; MUSIC.pause(); }
+    else if (state === 'paused')  { state = 'playing'; MUSIC.resume(); }
   }
+  if (e.code === 'KeyM') MUSIC.toggle();
   // Prevent page scroll when arrow keys used in-game
   if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code) && state === 'playing') {
     e.preventDefault();
@@ -555,6 +854,7 @@ function startGame() {
   hideOverlay();
   initLevel();
   updateScore();
+  MUSIC.start();
   loop();
 }
 
@@ -563,6 +863,7 @@ function nextLevel() {
   if (level > 7) {
     state = 'win';
     sfx.win();
+    MUSIC.stop();
     showOverlay('YOU WIN', `FINAL SCORE: ${score}`, score, 'PLAY AGAIN');
     return;
   }
@@ -711,6 +1012,7 @@ function update(dt) {
           if (score > hiScore) hiScore = score;
           updateScore();
           sfx.gameover();
+          MUSIC.stop();
           showOverlay('GAME OVER', `FINAL SCORE: ${score}`, score, 'RETRY', true);
         } else {
           resetBall();
@@ -984,14 +1286,29 @@ function render() {
     ctx.textAlign = 'center';
     ctx.shadowColor = '#00f5ff';
     ctx.shadowBlur = 20;
-    ctx.fillText('PAUSED', W/2, H/2);
+    ctx.fillText('PAUSED', W/2, H/2 - 20);
     ctx.font = '11px Share Tech Mono, monospace';
     ctx.fillStyle = 'rgba(0,245,255,0.5)';
     ctx.shadowBlur = 0;
-    ctx.fillText('PRESS SPACE TO RESUME', W/2, H/2 + 30);
+    ctx.fillText('PRESS SPACE TO RESUME', W/2, H/2 + 12);
     if (!isMobile) {
-      ctx.fillText('← → ARROW KEYS OR MOUSE TO MOVE', W/2, H/2 + 50);
+      ctx.fillText('← → ARROW KEYS OR MOUSE TO MOVE   |   M TO TOGGLE MUSIC', W/2, H/2 + 30);
     }
+
+    // Music toggle button
+    const musicOn = MUSIC.isOn();
+    const btnX = W/2 - 70, btnY = H/2 + 52, btnW = 140, btnH = 32;
+    ctx.shadowColor = musicOn ? '#39ff14' : '#ff006e';
+    ctx.shadowBlur = 12;
+    ctx.strokeStyle = musicOn ? '#39ff14' : '#ff006e';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(btnX, btnY, btnW, btnH);
+    ctx.fillStyle = musicOn ? 'rgba(57,255,20,0.1)' : 'rgba(255,0,110,0.1)';
+    ctx.fillRect(btnX, btnY, btnW, btnH);
+    ctx.font = '700 11px Orbitron, monospace';
+    ctx.fillStyle = musicOn ? '#39ff14' : '#ff006e';
+    ctx.shadowBlur = 8;
+    ctx.fillText(musicOn ? '♪  MUSIC  ON' : '♪  MUSIC  OFF', W/2, btnY + 20);
     ctx.restore();
   }
 
@@ -1002,6 +1319,7 @@ function render() {
 function autoPause() {
   if (state === 'playing') {
     state = 'paused';
+    MUSIC.pause();
   }
 }
 document.body.addEventListener('touchend', autoPause);

@@ -470,7 +470,9 @@ canvas.addEventListener('click', e => {
 });
 
 document.body.addEventListener('touchstart', e => {
-  if (state === 'idle' || state === 'ready') {
+  if (state === 'paused') {
+    state = 'playing';
+  } else if (state === 'idle' || state === 'ready') {
     startGame();
   }
 });

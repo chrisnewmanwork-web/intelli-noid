@@ -439,22 +439,26 @@ function updateLives() {
   }
 }
 
-// Mouse and touch control
+
+// Touch and mouse controls anywhere on the page
 function getPointerX(e) {
+  let clientX;
   if (e.touches && e.touches.length) {
-    const rect = canvas.getBoundingClientRect();
-    return e.touches[0].clientX - rect.left;
+    clientX = e.touches[0].clientX;
   } else {
-    const rect = canvas.getBoundingClientRect();
-    return e.clientX - rect.left;
+    clientX = e.clientX;
   }
+  // Map to canvas coordinates
+  const rect = canvas.getBoundingClientRect();
+  // Clamp to canvas bounds
+  return Math.max(0, Math.min(rect.width, clientX - rect.left));
 }
 
 canvas.addEventListener('mousemove', e => {
   paddle.target = getPointerX(e);
 });
 
-canvas.addEventListener('touchmove', e => {
+document.body.addEventListener('touchmove', e => {
   paddle.target = getPointerX(e);
   e.preventDefault();
 }, {passive:false});
@@ -465,7 +469,7 @@ canvas.addEventListener('click', e => {
   }
 });
 
-canvas.addEventListener('touchstart', e => {
+document.body.addEventListener('touchstart', e => {
   if (state === 'idle' || state === 'ready') {
     startGame();
   }
